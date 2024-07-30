@@ -10,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/extractor"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/asset_refer_fixer"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/cloudflarestream"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
@@ -41,6 +42,11 @@ func (c *Crawl) captureAsset(item *queue.Item, cookies []*http.Cookie, headers m
 	// Apply cookies obtained from the original URL captured
 	for i := range cookies {
 		req.AddCookie(cookies[i])
+	}
+
+	// Execute site-specific code on the request, before sending it
+	if asset_refer_fixer.IsNeedDelRefer(utils.URLToString(item.URL)) {
+		asset_refer_fixer.DelReferer(req)
 	}
 
 	resp, err = c.executeGET(item, req, false)
