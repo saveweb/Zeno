@@ -23,6 +23,7 @@ import (
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/vk"
 	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/youtube"
+	"github.com/internetarchive/Zeno/internal/pkg/crawl/sitespecific/zhubai"
 	"github.com/internetarchive/Zeno/internal/pkg/queue"
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 )
@@ -312,6 +313,62 @@ func (c *Crawl) Capture(item *queue.Item) error {
 		vk.AddHeaders(req)
 	} else if reddit.IsURL(utils.URLToString(item.URL)) {
 		reddit.AddCookies(req)
+	} else if zhubai.IsURL(item.URL) {
+		if zhubai.IsOnHostPage(item.URL) {
+			// /api/publications/news
+			newsInitURL, err := zhubai.GenPublicationsInitUrl(item.URL)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while GenPublicationsNewsInitUrl")
+			} else {
+				newsInitItem, err := queue.NewItem(newsInitURL, item.URL, item.Type, item.Hop, item.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating newsInitItem")
+					panic(err)
+				} else {
+					err = c.Capture(newsInitItem)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing newsInitURL")
+						panic(err)
+					}
+				}
+			}
+
+			// /api/publications/news/posts
+			newsPostInitURL, err := zhubai.GenPublicationsPostInitUrl(item.URL)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while GenPublicationsNewsPostInitUrl")
+			} else {
+				newsPostInitItem, err := queue.NewItem(newsPostInitURL, item.URL, item.Type, item.Hop, item.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating newsPostInitItem")
+					panic(err)
+				} else {
+					err = c.Capture(newsPostInitItem)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing newsPostInitURL")
+						panic(err)
+					}
+				}
+			}
+
+			// /api/self
+			selfURL, err := zhubai.GenSelfUrl(item.URL)
+			if err != nil {
+				c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while GenSelfUrl")
+			} else {
+				selfItem, err := queue.NewItem(selfURL, item.URL, item.Type, item.Hop, item.ID, false)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating selfItem")
+					panic(err)
+				} else {
+					err = c.Capture(selfItem)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing selfURL")
+						panic(err)
+					}
+				}
+			}
+		}
 	}
 
 	// Execute request
@@ -430,6 +487,53 @@ func (c *Crawl) Capture(item *queue.Item) error {
 						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from asset")
 					} else {
 						c.Capture(playerItem)
+					}
+				}
+			}
+		}
+	} else if zhubai.IsPublicationsPostURL(req.URL) {
+		PostsAPIResponse, err := zhubai.ParsePostsAPIResponse(resp)
+		if err != nil {
+			c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to parse posts API response")
+		} else {
+			for _, post := range PostsAPIResponse.Data {
+				// /posts/{}
+				postURL, err := url.Parse("https://" + req.URL.Host + "/posts/" + post.ID)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to parse post URL")
+				} else {
+					postItem, err := queue.NewItem(postURL, item.URL, "seed", 0, post.ID, false)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from post URL")
+					} else {
+						c.Capture(postItem)
+					}
+				}
+
+				// /api/posts/{}
+				postAPIURL, err := zhubai.GenPostApiUrl(item.URL, post.ID)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to generate post API URL")
+				} else {
+					postAPIItem, err := queue.NewItem(postAPIURL, item.URL, "seed", 0, post.ID, false)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from post API URL")
+					} else {
+						c.Capture(postAPIItem)
+					}
+				}
+			}
+
+			if PostsAPIResponse.Pagination.Next != "" {
+				nextURL, err := url.Parse(PostsAPIResponse.Pagination.Next)
+				if err != nil {
+					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to parse next URL")
+				} else {
+					nextItem, err := queue.NewItem(nextURL, item.URL, "seed", item.Hop, item.ID, false)
+					if err != nil {
+						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("unable to create new item from next URL")
+					} else {
+						c.Capture(nextItem)
 					}
 				}
 			}
