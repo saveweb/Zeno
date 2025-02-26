@@ -46,6 +46,13 @@ func findURLs(data interface{}, links *[]string) {
 	case string:
 		if isValidURL(v) {
 			*links = append(*links, v)
+		} else {
+			// try parse json-string
+			var jsonstring interface{}
+			err := json.Unmarshal([]byte(v), &jsonstring)
+			if err == nil {
+				findURLs(jsonstring, links)
+			}
 		}
 	case []interface{}:
 		for _, element := range v {
