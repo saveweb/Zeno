@@ -3,10 +3,11 @@ package zhubai
 import (
 	"encoding/json"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
+	"sync"
 )
 
 func IsURL(url *url.URL) bool {
@@ -85,16 +86,35 @@ func ParsePostsAPIResponse(resp *http.Response) (*PostsAPIResponse, error) {
 	return &postsAPIResponse, nil
 }
 
+var NonZhubaiAssetsLock = sync.Mutex{}
+var NonZhubaiAssetsFd *os.File
+var NonZhubaiAssetsSynconcer sync.Once
+
+func WriteNonZhubaiAssetsLog(asset *url.URL) {
+	NonZhubaiAssetsSynconcer.Do(func() {
+		NonZhubaiAssetsFd, _ = os.OpenFile("non_zhubai_assets.urls.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	})
+
+	NonZhubaiAssetsLock.Lock()
+	defer NonZhubaiAssetsLock.Unlock()
+	_, err := NonZhubaiAssetsFd.WriteString(asset.String() + "\n")
+	if err != nil {
+		panic(err)
+	}
+}
+
 func FilterAssets(assets []*url.URL) (newAssets []*url.URL) {
 	before := len(assets)
 	for _, asset := range assets {
 		if strings.Contains(asset.Host, "zhubai") {
 			newAssets = append(newAssets, asset)
+		} else {
+			WriteNonZhubaiAssetsLog(asset)
 		}
 	}
 	after := len(newAssets)
 	if before != after {
-		slog.Info("Filtered out assets", slog.Int("before", before), slog.Int("after", after))
+		// slog.Info("Filtered out assets", slog.Int("before", before), slog.Int("after", after))
 	}
 
 	return newAssets
