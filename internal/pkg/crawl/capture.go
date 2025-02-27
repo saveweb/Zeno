@@ -701,6 +701,9 @@ func (c *Crawl) Capture(item *queue.Item) error {
 	waitGroup.Add(1)
 	go c.queueOutlinks(outlinks, item, &waitGroup)
 
+	// filter out non-zhubai assets
+	assets = zhubai.FilterAssets(assets)
+
 	if !c.DisableAssetsCapture && len(assets) != 0 {
 		assets = c.seencheckAssets(assets, item)
 		if len(assets) != 0 {

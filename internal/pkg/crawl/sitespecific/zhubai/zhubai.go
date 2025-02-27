@@ -3,6 +3,7 @@ package zhubai
 import (
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -82,4 +83,19 @@ func ParsePostsAPIResponse(resp *http.Response) (*PostsAPIResponse, error) {
 	}
 
 	return &postsAPIResponse, nil
+}
+
+func FilterAssets(assets []*url.URL) (newAssets []*url.URL) {
+	before := len(assets)
+	for _, asset := range assets {
+		if strings.Contains(asset.Host, "zhubai") {
+			newAssets = append(newAssets, asset)
+		}
+	}
+	after := len(newAssets)
+	if before != after {
+		slog.Info("Filtered out assets", slog.Int("before", before), slog.Int("after", after))
+	}
+
+	return newAssets
 }
