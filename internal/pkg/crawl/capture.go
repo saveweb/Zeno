@@ -531,6 +531,8 @@ func (c *Crawl) Capture(item *queue.Item) error {
 					}
 				}
 			}
+
+			return nil
 		}
 	}
 
