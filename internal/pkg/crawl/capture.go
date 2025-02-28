@@ -323,12 +323,10 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				newsInitItem, err := queue.NewItem(newsInitURL, item.URL, item.Type, item.Hop, item.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating newsInitItem")
-					panic(err)
 				} else {
 					err = c.Capture(newsInitItem)
 					if err != nil {
 						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing newsInitURL")
-						panic(err)
 					}
 				}
 			}
@@ -341,12 +339,10 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				newsPostInitItem, err := queue.NewItem(newsPostInitURL, item.URL, item.Type, item.Hop, item.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating newsPostInitItem")
-					panic(err)
 				} else {
 					err = c.Capture(newsPostInitItem)
 					if err != nil {
 						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing newsPostInitURL")
-						panic(err)
 					}
 				}
 			}
@@ -359,12 +355,10 @@ func (c *Crawl) Capture(item *queue.Item) error {
 				selfItem, err := queue.NewItem(selfURL, item.URL, item.Type, item.Hop, item.ID, false)
 				if err != nil {
 					c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while creating selfItem")
-					panic(err)
 				} else {
 					err = c.Capture(selfItem)
 					if err != nil {
 						c.Log.WithFields(c.genLogFields(err, item.URL, nil)).Error("error while capturing selfURL")
-						panic(err)
 					}
 				}
 			}
