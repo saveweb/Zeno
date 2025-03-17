@@ -57,10 +57,11 @@ func Start(finishChan, produceChan chan *models.Item) error {
 			client:    LQclient,
 		}
 
-		globalLQ.wg.Add(3)
+		globalLQ.wg.Add(4)
 		go consumer()
 		go producer()
 		go finisher()
+		go vacuumer()
 
 		logger.Info("started")
 
