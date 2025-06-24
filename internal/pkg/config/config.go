@@ -79,6 +79,21 @@ type Config struct {
 	UseHQ                  bool     // Special field to check if HQ is enabled depending on the command called
 	HQRateLimitingSendBack bool     `mapstructure:"hq-rate-limiting-send-back"`
 
+	// Headless
+	Headless            bool   `mapstructure:"headless"`
+	HeadlessTrace       bool   `mapstructure:"headless-trace"`
+	ChroumiumBin        string `mapstructure:"chromium-bin"`
+	Headfull            bool   `mapstructure:"headfull"`
+	DevTools            bool   `mapstructure:"dev-tools"`
+	StealthMode         bool   `mapstructure:"stealth-mode"`
+	HeadlessUserDataDir string `mapstructure:"headless-user-data-dir"`
+
+	PageLoadTimeout time.Duration `mapstructure:"page-load-timeout"`
+	PostLoadDelay   time.Duration `mapstructure:"post-load-delay"`
+
+	Behaviors       string        `mapstructure:"behaviors"`
+	BehaviorTimeout time.Duration `mapstructure:"behavior-timeout"`
+
 	// Network
 	Proxy         string `mapstructure:"proxy"`
 	RandomLocalIP bool   `mapstructure:"random-local-ip"`
