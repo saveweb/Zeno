@@ -3,12 +3,14 @@ package postprocessor
 import (
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/internetarchive/Zeno/internal/pkg/config"
 	"github.com/internetarchive/Zeno/internal/pkg/log"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/extractor"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/ina"
+	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/meizu"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/reddit"
 	"github.com/internetarchive/Zeno/internal/pkg/postprocessor/sitespecific/truthsocial"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -58,20 +60,53 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
-	case extractor.IsJSON(item.GetURL()):
-		assets, outlinks, err = extractor.JSON(item.GetURL())
+	case meizu.IsThreadURL(item.GetURL()):
+		assets, err = extractor.HTMLAssets(item)
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
-	case extractor.IsXML(item.GetURL()):
-		assets, outlinks, err = extractor.XML(item.GetURL())
+		meizuThreadAssets, err := meizu.AddAssetsFromThreadURL(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract Meizu thread assets", "err", err.Error())
+			return assets, outlinks, err
+		}
+		assets = append(assets, meizuThreadAssets...)
+	case meizu.IsCommentListURL(item.GetURL()):
+		assets, outlinks, err = extractor.JSONHttpOnly(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract assets", "err", err.Error())
+			return assets, outlinks, err
+		}
+
+		hasMoreComments := meizu.CommentListHasMoreComments(item.GetURL())
+		if hasMoreComments {
+			currentPage := meizu.CommentCurrentPage(item.GetURL())
+
+			newAssets := &models.URL{}
+			parsedURL := item.GetURL().GetParsed()
+			query := parsedURL.Query()
+			query.Set("currentPage", strconv.Itoa(currentPage+1))
+			parsedURL.RawQuery = query.Encode()
+			newAssets.Raw = parsedURL.String()
+
+			assets = append(assets, newAssets)
+			logger.Debug("comment list has more comments to load", "item_id", item.GetShortID())
+		}
+	case extractor.IsJSON(item.GetURL()):
+		assets, outlinks, err = extractor.JSONHttpOnly(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
 		}
 	case extractor.IsHTML(item.GetURL()):
 		assets, err = extractor.HTMLAssets(item)
+		if err != nil {
+			logger.Error("unable to extract assets", "err", err.Error())
+			return assets, outlinks, err
+		}
+	case extractor.IsXML(item.GetURL()):
+		assets, outlinks, err = extractor.XML(item.GetURL())
 		if err != nil {
 			logger.Error("unable to extract assets", "err", err.Error())
 			return assets, outlinks, err
@@ -88,6 +123,39 @@ func Extractors(item *models.Item) (assets, outlinks []*models.URL, err error) {
 			logger.Debug("extracted assets from CSS", logArgs...)
 		}
 		extractor.AddAtImportLinksToItemChild(item, atImportLinks)
+
+	case meizu.IsURL(item.GetURL()) && extractor.IsJavaScript(item.GetURL()):
+		jsImportLinks, otherJSLinks, otherCSSLinks, _, err := extractor.ExtractFromURLScript(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract assets from JavaScript", "err", err.Error())
+			return assets, outlinks, err
+		}
+		jsImportLinks = append(jsImportLinks, otherJSLinks...)
+
+		for _, link := range jsImportLinks {
+			if strings.HasPrefix(link.Raw, "js/") {
+				link.Raw = "/js/" + strings.TrimPrefix(link.Raw, "js/")
+				logger.Debug("rewriting Meizu JS link", "original", link.Raw, "rewritten", link.Raw)
+			}
+		}
+		for _, link := range otherCSSLinks {
+			if strings.HasPrefix(link.Raw, "css/") {
+				link.Raw = "/css/" + strings.TrimPrefix(link.Raw, "css/")
+				logger.Debug("rewriting Meizu CSS link", "original", link.Raw, "rewritten", link.Raw)
+			}
+		}
+		extractor.AddJSImportLinksToItemChild(item, jsImportLinks)
+		extractor.AddAtImportLinksToItemChild(item, otherCSSLinks)
+	case extractor.IsJavaScript(item.GetURL()):
+		jsImportLinks, otherJSLinks, otherCSSLinks, otherStrings, err := extractor.ExtractFromURLScript(item.GetURL())
+		if err != nil {
+			logger.Error("unable to extract assets from JavaScript", "err", err.Error())
+			return assets, outlinks, err
+		}
+		jsImportLinks = append(jsImportLinks, otherJSLinks...)
+		extractor.AddJSImportLinksToItemChild(item, jsImportLinks)
+		extractor.AddAtImportLinksToItemChild(item, otherCSSLinks)
+		_ = otherStrings // TODO
 	default:
 		contentType := item.GetURL().GetResponse().Header.Get("Content-Type")
 		logger.Debug("no extractor used for page", "content-type", contentType, "mime", item.GetURL().GetMIMEType().String())

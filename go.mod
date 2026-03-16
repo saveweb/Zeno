@@ -2,6 +2,8 @@ module github.com/internetarchive/Zeno
 
 go 1.25.7
 
+replace github.com/internetarchive/gowarc v0.8.97 => ../warc.reuse-compressor
+
 require (
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3
 	github.com/MatusOllah/slogcolor v1.7.0
@@ -34,6 +36,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
+	github.com/tdewolff/parse/v2 v2.8.10
 	github.com/ysmood/gson v0.7.3
 	github.com/yzqzss/goada-wasm v1.0.2
 	go.baoshuo.dev/csslexer v0.1.0

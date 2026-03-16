@@ -33,6 +33,24 @@ func JSON(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	return assets, outlinks, nil
 }
 
+func JSONHttpOnly(URL *models.URL) (assets, outlinks []*models.URL, err error) {
+	_assets, _outlinks, err := JSON(URL)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, asset := range _assets {
+		if strings.HasPrefix(asset.Raw, "http") {
+			assets = append(assets, asset)
+		}
+	}
+	for _, outlink := range _outlinks {
+		if strings.HasPrefix(outlink.Raw, "http") {
+			outlinks = append(outlinks, outlink)
+		}
+	}
+	return assets, outlinks, nil
+}
+
 func GetURLsFromJSON(decoder *json.Decoder) (assets, outlinks []string, err error) {
 	var data any
 

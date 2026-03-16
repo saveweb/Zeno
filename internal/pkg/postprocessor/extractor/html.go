@@ -317,6 +317,14 @@ func HTMLAssets(item *models.Item) (assets []*models.URL, err error) {
 					rawAssets = append(rawAssets, assetsFromScriptContent...)
 				}
 			}
+
+			importsFromScript, otherStrings, err := extractJSImportStrings(i.Text())
+			_ = otherStrings // TODO
+			if err != nil {
+				logger.Debug("unable to extract imports from script tag", "error", err)
+			} else {
+				rawAssets = append(rawAssets, importsFromScript...)
+			}
 		})
 	}
 

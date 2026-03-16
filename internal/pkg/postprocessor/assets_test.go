@@ -58,6 +58,55 @@ func TestExtractAssets_HTML(t *testing.T) {
 	}
 }
 
+func TestExtractAssets_JavaScriptImports(t *testing.T) {
+	config.Set(&config.Config{MaxJSJump: 10})
+
+	script := `import "./runtime.js"; import("./chunk/a.js");`
+	resp := &http.Response{
+		Header:     make(http.Header),
+		Body:       io.NopCloser(bytes.NewBufferString(script)),
+		StatusCode: 200,
+	}
+	resp.Header.Set("Content-Type", "application/javascript")
+
+	newURL, err := models.NewURL("http://example.com/main.js")
+	if err != nil {
+		panic(err)
+	}
+	newURL.SetResponse(resp)
+
+	spooledTempFile := spooledtempfile.NewSpooledTempFile("test", os.TempDir(), 2048, false, -1)
+	spooledTempFile.Write([]byte(script))
+
+	newURL.SetBody(spooledTempFile)
+	newURL.Parse()
+	item := models.NewItem(&newURL, "")
+
+	_assets, outlinks, err := ExtractAssetsOutlinks(item)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(_assets) != 0 {
+		t.Fatalf("expected no assets, got %d", len(_assets))
+	}
+	assets := item.GetChildren() // JS import links are added as children, not assets
+
+	if len(assets) != 2 {
+		t.Fatalf("expected 2 JS import assets, got %d", len(assets))
+	}
+
+	if assets[0].GetURL().Raw != "http://example.com/runtime.js" {
+		t.Fatalf("unexpected first asset: %s", assets[0].GetURL().Raw)
+	}
+	if assets[1].GetURL().Raw != "http://example.com/chunk/a.js" {
+		t.Fatalf("unexpected second asset: %s", assets[1].GetURL().Raw)
+	}
+
+	if len(outlinks) != 0 {
+		t.Fatalf("expected no outlinks, got %d", len(outlinks))
+	}
+}
+
 func TestSanitizeAssetsOutlinks(t *testing.T) {
 	var err error
 	newURL, _ := models.NewURL("http://example.com")

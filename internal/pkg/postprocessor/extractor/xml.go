@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/utils"
 	"github.com/internetarchive/Zeno/pkg/models"
@@ -110,7 +112,6 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 	body.Reset(URL.GetBody())
 	defer xmlBufioReaderPool.Put(body)
 
-
 	// Peek to check if body has any non-whitespace content
 	peek, err := body.Peek(512) // peek up to 512 bytes
 	if err != nil && err != io.EOF {
@@ -125,6 +126,12 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 
 	var tok xml.Token
 	var rawURLs []string
+	regexTotalTime := time.Duration(0)
+	defer func() {
+		if regexTotalTime > 100*time.Millisecond {
+			fmt.Printf("!!! Total time spent on regex in XML extractor: %s, url: %s\n", regexTotalTime, URL.Raw)
+		}
+	}()
 	for {
 		tok, err = decoder.RawToken()
 
@@ -150,7 +157,13 @@ func XML(URL *models.URL) (assets, outlinks []*models.URL, err error) {
 				rawURLs = append(rawURLs, string(tok))
 			} else {
 				// Try to extract URLs from the text
-				rawURLs = append(rawURLs, utils.DedupeStrings(LinkRegexStrict.FindAllString(string(tok), -1))...)
+				start := time.Now()
+				foundURLs := utils.DedupeStrings(LinkRegexStrict.FindAllString(string(tok), -1))
+				if len(foundURLs) > 0 {
+					fmt.Printf("regex found x links: %d\n", len(foundURLs))
+				}
+				regexTotalTime += time.Since(start)
+				rawURLs = append(rawURLs, foundURLs...)
 			}
 		}
 	}

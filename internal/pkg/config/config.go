@@ -56,6 +56,7 @@ type Config struct {
 	WARCWriteAsync                  bool          `mapstructure:"async-warc-write"`
 	WARCDiscardStatus               []int         `mapstructure:"warc-discard-status"`
 	WARCDigestAlgorithm             string        `mapstructure:"warc-digest-algorithm"`
+	WARCCompression                 string        `mapstructure:"warc-compression"`
 	CDXDedupeServer                 string        `mapstructure:"warc-cdx-dedupe-server"`
 	CDXCookie                       string        `mapstructure:"warc-cdx-cookie"`
 	DoppelgangerDedupeServer        string        `mapstructure:"warc-doppelganger-dedupe-server"`
@@ -82,6 +83,7 @@ type Config struct {
 	MaxHops                         int           `mapstructure:"max-hops"`
 	MaxRedirect                     int           `mapstructure:"max-redirect"`
 	MaxCSSJump                      int           `mapstructure:"max-css-jump"`
+	MaxJSJump                       int           `mapstructure:"max-js-jump"`
 	MaxRetry                        int           `mapstructure:"max-retry"`
 	MaxContentLengthMiB             int           `mapstructure:"max-content-length"`
 	MaxOutlinks                     int           `mapstructure:"max-outlinks"`

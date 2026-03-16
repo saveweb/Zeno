@@ -217,7 +217,7 @@ func ensureAllIDsNotInReactor(URLs []sqlc_model.Url) error {
 // If both conditions are met, it triggers a graceful shutdown.
 func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 	// Only check after multiple consecutive empty fetches to avoid premature shutdown
-	if emptyFetches < 5 {
+	if emptyFetches < 50 {
 		return
 	}
 
@@ -251,5 +251,3 @@ func checkIfCrawlFinished(logger *log.FieldedLogger, emptyFetches int) {
 		logger.Debug("reactor still has active work", "active_items", len(reactorState))
 	}
 }
-
-

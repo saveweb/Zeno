@@ -189,6 +189,22 @@ func TestLinkRegex(t *testing.T) {
 	}
 }
 
+func TestStrictMatchingScheme(t *testing.T) {
+	scriptContent := `Check this link: https://example.com, and this one: http://test.org/path, but not this one: example.com`
+	result := LinkRegexStrict.FindAllString(scriptContent, -1)
+	expected := []string{"https://example.com", "http://test.org/path"}
+	if len(result) != len(expected) {
+		t.Fatalf("Expected %d URLs, got %d", len(expected), len(result))
+	}
+	slices.Sort(result)
+	slices.Sort(expected)
+	for i, url := range result {
+		if url != expected[i] {
+			t.Errorf("Expected URL %s, got %s", expected[i], url)
+		}
+	}
+}
+
 func TestQuotedLinkRegex(t *testing.T) {
 	tests := []struct {
 		name     string

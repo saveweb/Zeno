@@ -74,7 +74,7 @@ func postprocessItem(item *models.Item) []*models.Item {
 	//    -> we don't want to go too deep but still get the assets of assets (f.ex: m3u8)
 	//    -> CSS @import chains can be very long, the depth control logic for embedded CSS item is in the AddAtImportLinksToItemChild() function separately.
 	// 2. assets capture and domains crawl are disabled
-	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && !extractor.IsEmbeddedCSS(item) {
+	if !domainscrawl.Enabled() && item.GetDepthWithoutRedirections() > 2 && (!extractor.IsEmbeddedCSS(item) || !extractor.IsEmbeddedJavaScript(item)) {
 		logger.Debug("item is a child and it's depth (without redirections) is more than 2")
 		item.SetStatus(models.ItemCompleted)
 		return outlinks

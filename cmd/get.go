@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/internetarchive/Zeno/internal/pkg/archiver/headless"
+	warc "github.com/internetarchive/gowarc"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +56,7 @@ func addBasicFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("api-port", 9090, "Port to listen on for the API.")
 	getCmd.PersistentFlags().Int("max-redirect", 20, "Specifies the maximum number of redirections to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-css-jump", 10, "Specifies the maximum number of CSS @import jumps to follow for a resource.")
+	getCmd.PersistentFlags().Int("max-js-jump", 10, "Specifies the maximum number of JavaScript jumps to follow for a resource.")
 	getCmd.PersistentFlags().Int("max-retry", 5, "Number of retry if error happen when executing HTTP request.")
 	getCmd.PersistentFlags().Duration("http-timeout", 0, "Time to wait before timing out a request. Note: this will CANCEL large files download.")
 	getCmd.PersistentFlags().Duration("conn-read-deadline", 60*time.Second, "Time to wait before timing out a (blocking) TCP connection read.")
@@ -132,6 +135,7 @@ func addWARCFlags(getCmd *cobra.Command) {
 	getCmd.PersistentFlags().Int("warc-size", 1024, "Size of the WARC files in MB.")
 	getCmd.PersistentFlags().IntSlice("warc-discard-status", []int{429}, "HTTP status codes to discard from WARC files. By default, 429 is always discarded.")
 	getCmd.PersistentFlags().Bool("async-warc-write", false, "Write WARC records asynchronously. EXPERIMENTAL - may cause OOMs, lost data, or other unknown/unpredicted issues. No support will be provided for this feature.")
+	getCmd.PersistentFlags().String("warc-compression", string(warc.CompressionGzip), fmt.Sprintf("Compression algorithm to use for WARC files. Possible values are: %v", warc.CompressionTypes))
 }
 
 func addLoggingFlags(getCmd *cobra.Command) {

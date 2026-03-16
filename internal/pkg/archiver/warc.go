@@ -15,6 +15,8 @@ func startWARCWriter() error {
 	rotatorSettings.Prefix = config.Get().WARCPrefix
 	rotatorSettings.WARCWriterPoolSize = config.Get().WARCPoolSize
 	rotatorSettings.WARCSize = float64(config.Get().WARCSize)
+	rotatorSettings.Compression = warc.MustCompressionTypeFromString(config.Get().WARCCompression)
+	// rotatorSettings.Compression = "ZSTD"
 	rotatorSettings.OutputDirectory = path.Join(config.Get().JobPath, "warcs")
 
 	version := utils.GetVersion()
